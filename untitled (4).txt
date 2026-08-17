@@ -1,0 +1,826 @@
+while not game:IsLoaded() do task.wait(0.1) end
+
+local ac = (gethui and gethui()) or game:GetService("CoreGui")
+local Lighting = game:GetService("Lighting")
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local TweenService = game:GetService("TweenService")
+local RunService = game:GetService("RunService")
+local SoundService = game:GetService("SoundService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local UserInputService = game:GetService("UserInputService")
+local Mouse = LocalPlayer:GetMouse()
+
+local bc = loadstring(game:HttpGet('https://raw.githubusercontent.com/visnoukkk/Creep.cc/refs/heads/main/Source.lua'))()
+local ci = loadstring(game:HttpGet('https://raw.githubusercontent.com/visnoukkk/Creep.cc/refs/heads/main/ThemeManager.lua'))()
+local bx = loadstring(game:HttpGet('https://raw.githubusercontent.com/visnoukkk/Creep.cc/refs/heads/main/Settings.lua'))()
+
+-- Cooldown Removal Functions Integration
+local function removeLibraryCooldowns()
+    local modules = ReplicatedStorage:FindFirstChild("Modules")
+    local itemLib = modules and modules:FindFirstChild("ItemLibrary")
+    if itemLib then
+        local success, library = pcall(require, itemLib)
+        if success and type(library) == "table" then
+            local items = library.Items or library.Weapons or library.Melee or library.Utilities
+            if type(items) == "table" then
+                local cooldowns = {"Cooldown", "AttackCooldown", "UseDelay", "SpinCooldown", "HeavyAttackCooldown", "AbilityCooldown", "FireCooldown"}
+                for _, item in pairs(items) do
+                    if type(item) == "table" then
+                        for _, field in ipairs(cooldowns) do
+                            if item[field] then item[field] = 0 end
+                        end
+                    end
+                end
+            end
+        end
+    end
+end
+
+local function overrideGunCooldowns()
+    pcall(function()
+        local playerScripts = LocalPlayer:FindFirstChild("PlayerScripts")
+        local modules = playerScripts and playerScripts:FindFirstChild("Modules")
+        local itemTypes = modules and modules:FindFirstChild("ItemTypes")
+        local gunModule = itemTypes and itemTypes:FindFirstChild("Gun")
+        if gunModule then
+            local Gun = require(gunModule)
+            if Gun and Gun.Update and not Gun._cooldownHooked then
+                Gun._cooldownHooked = true
+                local oldUpdate = Gun.Update
+                Gun.Update = function(self, dt, ...)
+                    if self._shoot_cooldown then self._shoot_cooldown = 0 end
+                    return oldUpdate(self, dt, ...)
+                end
+            end
+        end
+    end)
+end
+
+-- Execute instantly
+removeLibraryCooldowns()
+overrideGunCooldowns()
+
+local dc = bc:CreateWindow({
+    Title = 'Ascendant discord.gg/ Ascendant',
+    Center = true,
+    AutoShow = true,
+    TabPadding = 8,
+    MenuFadeTime = 0.2,
+})
+
+local ch = {
+    Main      = dc:AddTab('Main'),
+    World     = dc:AddTab('World'),
+    Esp       = dc:AddTab('Esp'),
+    Visuals   = dc:AddTab('Visuals'),
+    Character = dc:AddTab('Character'),
+    Misc      = dc:AddTab('Misc'),
+    Settings  = dc:AddTab('Settings'),
+}
+
+-- Store default lighting properties
+local defaultLighting = {
+    Ambient = Lighting.Ambient,
+    OutdoorAmbient = Lighting.OutdoorAmbient,
+    ColorShift_Bottom = Lighting.ColorShift_Bottom,
+    ColorShift_Top = Lighting.ColorShift_Top,
+    FogColor = Lighting.FogColor,
+    FogEnd = Lighting.FogEnd,
+    FogStart = Lighting.FogStart,
+    ExposureCompensation = Lighting.ExposureCompensation,
+    Brightness = Lighting.Brightness,
+    ClockTime = Lighting.ClockTime,
+    GlobalShadows = Lighting.GlobalShadows,
+    Technology = Lighting.Technology
+}
+
+-- Left Groupbox: Lighting
+local lightingGroup = ch.World:AddLeftGroupbox('lighting')
+
+lightingGroup:AddToggle('Ambient', { Text = 'Ambient', Default = false, Callback = function(v) 
+    if not v then Lighting.Ambient = defaultLighting.Ambient end 
+end }):AddColorPicker('AmbientColor', { Default = Color3.fromRGB(200, 200, 200), Callback = function(v) end })
+
+lightingGroup:AddToggle('ColorShiftBottom', { Text = 'ColorShift_Bottom', Default = false, Callback = function(v) 
+    if not v then Lighting.ColorShift_Bottom = defaultLighting.ColorShift_Bottom end 
+end }):AddColorPicker('ColorShiftBottomColor', { Default = Color3.fromRGB(0, 0, 0), Callback = function(v) end })
+
+lightingGroup:AddToggle('ColorShiftTop', { Text = 'ColorShift_Top', Default = false, Callback = function(v) 
+    if not v then Lighting.ColorShift_Top = defaultLighting.ColorShift_Top end 
+end }):AddColorPicker('ColorShiftTopColor', { Default = Color3.fromRGB(0, 0, 0), Callback = function(v) end })
+
+lightingGroup:AddToggle('FogColor', { Text = 'FogColor', Default = false, Callback = function(v) 
+    if not v then Lighting.FogColor = defaultLighting.FogColor end 
+end }):AddColorPicker('FogColorPicker', { Default = Color3.fromRGB(255, 255, 255), Callback = function(v) end })
+
+lightingGroup:AddToggle('FogEndToggle', { Text = 'FogEnd', Default = false, Callback = function(v) 
+    if not v then Lighting.FogEnd = defaultLighting.FogEnd end 
+end })
+lightingGroup:AddSlider('FogEnd', { Text = 'FogEnd: 1000 studs', Default = 1000, Min = 0, Max = 10000, Rounding = 0, Suffix = ' studs', Callback = function(v) end })
+
+lightingGroup:AddToggle('FogStartToggle', { Text = 'FogStart', Default = false, Callback = function(v) 
+    if not v then Lighting.FogStart = defaultLighting.FogStart end 
+end })
+lightingGroup:AddSlider('FogStart', { Text = 'FogStart: 0 studs', Default = 0, Min = 0, Max = 1000, Rounding = 0, Suffix = ' studs', Callback = function(v) end })
+
+lightingGroup:AddToggle('ExposureCompensationToggle', { Text = 'ExposureCompensation', Default = false, Callback = function(v) 
+    if not v then Lighting.ExposureCompensation = defaultLighting.ExposureCompensation end 
+end })
+lightingGroup:AddSlider('ExposureCompensation', { Text = 'ExposureCompensation: -0.1', Default = -0.1, Min = -3, Max = 3, Rounding = 1, Callback = function(v) end })
+
+lightingGroup:AddToggle('BrightnessToggle', { Text = 'Brightness', Default = false, Callback = function(v) 
+    if not v then Lighting.Brightness = defaultLighting.Brightness end 
+end })
+lightingGroup:AddSlider('Brightness', { Text = 'Brightness: 7.7', Default = 7.7, Min = 0, Max = 20, Rounding = 1, Callback = function(v) end })
+
+lightingGroup:AddToggle('ClockTimeToggle', { Text = 'ClockTime', Default = false, Callback = function(v) 
+    if not v then Lighting.ClockTime = defaultLighting.ClockTime end 
+end })
+lightingGroup:AddSlider('ClockTime', { Text = 'ClockTime: 6.4h', Default = 6.4, Min = 0, Max = 24, Rounding = 1, Suffix = 'h', Callback = function(v) end })
+
+lightingGroup:AddToggle('GlobalShadows', { Text = 'GlobalShadows', Default = true, Callback = function(v) 
+    Lighting.GlobalShadows = v 
+end })
+
+lightingGroup:AddDropdown('Technology', { Text = 'Technology', Default = 1, Values = { 'Future', 'ShadowMap', 'Compatibility', 'Voxel' }, Callback = function(v) 
+    local techMap = {
+        ['Future'] = Enum.Technology.Future,
+        ['ShadowMap'] = Enum.Technology.ShadowMap,
+        ['Compatibility'] = Enum.Technology.Compatibility,
+        ['Voxel'] = Enum.Technology.Voxel
+    }
+    if techMap[v] then
+        Lighting.Technology = techMap[v]
+    end
+end })
+
+-- Skybox Presets Data
+local skyboxPresets = {
+    ["Dark Sky"] = { SkyboxUp = "rbxassetid://570555929", SkyboxRt = "rbxassetid://570555882", SkyboxDn = "rbxassetid://570555964", SkyboxFt = "rbxassetid://570555800", SkyboxLf = "rbxassetid://570555840", SkyboxBk = "rbxassetid://570555736" },
+    ["Art Mountain"] = { SkyboxUp = "rbxassetid://2128462236", SkyboxRt = "rbxassetid://2128462027", SkyboxLf = "rbxassetid://2128462027", SkyboxFt = "rbxassetid://2128458653", SkyboxBk = "rbxassetid://2128458653", SkyboxDn = "rbxassetid://2128462480" },
+    ["Vaporwave"] = { SkyboxUp = "rbxassetid://1417494643", SkyboxRt = "rbxassetid://1417494499", SkyboxLf = "rbxassetid://1417494402", SkyboxFt = "rbxassetid://1417494253", SkyboxBk = "rbxassetid://1417494030", SkyboxDn = "rbxassetid://1417494146" },
+    ["Nebula"] = { SkyboxUp = "rbxassetid://159454288", SkyboxRt = "rbxassetid://159454300", SkyboxLf = "rbxassetid://159454286", SkyboxFt = "rbxassetid://159454293", SkyboxBk = "rbxassetid://159454299", SkyboxDn = "rbxassetid://159454296" },
+    ["Twilight"] = { SkyboxUp = "rbxassetid://264907379", SkyboxRt = "rbxassetid://264908886", SkyboxLf = "rbxassetid://264909758", SkyboxFt = "rbxassetid://264909420", SkyboxBk = "rbxassetid://264908339", SkyboxDn = "rbxassetid://264907909" },
+    ["Lake Sky"] = { SkyboxRt = "rbxassetid://6823531746", SkyboxUp = "rbxassetid://6823528533", SkyboxDn = "rbxassetid://6823525702", SkyboxFt = "rbxassetid://6823482923", SkyboxLf = "rbxassetid://6823530023", SkyboxBk = "rbxassetid://6823523318" },
+    ["Alien Red"] = { SkyboxUp = "rbxassetid://7123412196", SkyboxRt = "rbxassetid://7123402505", SkyboxDn = "rbxassetid://7123387679", SkyboxFt = "rbxassetid://7123390433", SkyboxLf = "rbxassetid://7123394786", SkyboxBk = "rbxassetid://7123385217" },
+    ["Starry Night"] = { SkyboxUp = "rbxassetid://2570432996", SkyboxRt = "rbxassetid://2570432997", SkyboxDn = "rbxassetid://2570433005", SkyboxFt = "rbxassetid://2570432998", SkyboxLf = "rbxassetid://2570433000", SkyboxBk = "rbxassetid://2570432999" }
+}
+
+local skyboxListNames = {}
+for name, _ in pairs(skyboxPresets) do
+    table.insert(skyboxListNames, name)
+end
+table.sort(skyboxListNames)
+
+-- Left Side Tabbox with Color Correction and Atmosphere
+local leftWorldTabbox = ch.World:AddLeftTabbox()
+
+local tabColorCorrection = leftWorldTabbox:AddTab('color correction')
+tabColorCorrection:AddToggle('ColorCorrectionEnabled', { Text = 'enabled', Default = false, Callback = function(v)
+    if not v then
+        local cc = Lighting:FindFirstChild("CreepCustomCC")
+        if cc then cc:Destroy() end
+    end
+end }):AddColorPicker('CCColor', { Default = Color3.fromRGB(255, 255, 255), Callback = function(v) end })
+tabColorCorrection:AddSlider('CCSaturation', { Text = 'saturation: 0.1', Default = 0.1, Min = -1, Max = 3, Rounding = 2, Callback = function(v) end })
+tabColorCorrection:AddSlider('CCContrast', { Text = 'contrast: 0.3', Default = 0.3, Min = -1, Max = 3, Rounding = 2, Callback = function(v) end })
+tabColorCorrection:AddSlider('CCBrightness', { Text = 'brightness: -0.04', Default = -0.04, Min = -1, Max = 1, Rounding = 2, Callback = function(v) end })
+
+local tabAtmosphere = leftWorldTabbox:AddTab('atmosphere')
+tabAtmosphere:AddToggle('AtmosphereEnabled', { Text = 'enabled', Default = false, Callback = function(v)
+    if not v then
+        local atm = Lighting:FindFirstChild("CreepCustomAtmosphere")
+        if atm then atm:Destroy() end
+    end
+end }):AddColorPicker('AtmosphereColor', { Default = Color3.fromRGB(199, 199, 199), Callback = function(v) end })
+tabAtmosphere:AddSlider('AtmosphereDensity', { Text = 'density: 0.3', Default = 0.3, Min = 0, Max = 1, Rounding = 2, Callback = function(v) end })
+tabAtmosphere:AddSlider('AtmosphereOffset', { Text = 'offset: 0.25', Default = 0.25, Min = 0, Max = 1, Rounding = 2, Callback = function(v) end })
+tabAtmosphere:AddSlider('AtmosphereHaze', { Text = 'haze: 0', Default = 0, Min = 0, Max = 10, Rounding = 1, Callback = function(v) end })
+tabAtmosphere:AddSlider('AtmosphereGlare', { Text = 'glare: 0', Default = 0, Min = 0, Max = 10, Rounding = 1, Callback = function(v) end })
+
+-- Right Side Tabbox with Skybox, Weather, Ambience
+local worldTabbox = ch.World:AddRightTabbox()
+
+local tabSkybox = worldTabbox:AddTab('skybox')
+tabSkybox:AddToggle('SkyboxEnabled', { Text = 'enabled', Default = false, Callback = function(v)
+    if not v then
+        for _, obj in ipairs(Lighting:GetChildren()) do
+            if obj:IsA('Sky') and obj.Name == 'CreepCustomSkybox' then
+                obj:Destroy()
+            end
+        end
+    end
+end })
+tabSkybox:AddDropdown('SkyboxSelected', { Text = 'selected', Default = 1, Values = skyboxListNames, Callback = function(v) end })
+
+local tabWeather = worldTabbox:AddTab('weather')
+tabWeather:AddToggle('WeatherEnabled', { Text = 'enabled', Default = false, Callback = function(v)
+    if not v then
+        local rFolder = workspace:FindFirstChild("ClientRainContainer")
+        if rFolder then rFolder:ClearAllChildren() end
+        local sFolder = workspace:FindFirstChild("ClientSnowContainer")
+        if sFolder then sFolder:ClearAllChildren() end
+    end
+end }):AddColorPicker('WeatherColor1', { Default = Color3.fromRGB(255, 255, 255), Callback = function(v) end }):AddColorPicker('WeatherColor2', { Default = Color3.fromRGB(255, 220, 230), Callback = function(v) end }):AddColorPicker('WeatherColor3', { Default = Color3.fromRGB(255, 255, 255), Callback = function(v) end })
+
+tabWeather:AddDropdown('WeatherSelected', { Text = 'selected', Default = 1, Values = { 'Snow', 'Rain', 'Thunder' }, Callback = function(v) end })
+tabWeather:AddSlider('WeatherRate', { Text = 'rate: 5.6x', Default = 5.6, Min = 0.1, Max = 10.0, Rounding = 1, Suffix = 'x', Callback = function(v) end })
+tabWeather:AddSlider('WeatherLifetime', { Text = 'lifetime: 81%', Default = 81, Min = 1, Max = 100, Rounding = 0, Suffix = '%', Callback = function(v) end })
+tabWeather:AddSlider('WeatherTimescale', { Text = 'timescale: 1x', Default = 1.0, Min = 0.1, Max = 5.0, Rounding = 1, Suffix = 'x', Callback = function(v) end })
+
+local tabAmbience = worldTabbox:AddTab('ambience')
+tabAmbience:AddToggle('CustomAmbience', { Text = 'Enable Ambient Audio', Default = false, Callback = function(v) end })
+tabAmbience:AddDropdown('AmbienceTrack', { Text = 'Sound Track', Default = 1, Values = { 'Wind', 'Rainfall', 'Night Crickets', 'Sci-Fi Hum' }, Callback = function(v) end })
+tabAmbience:AddSlider('AmbienceVolume', { Text = 'Volume', Default = 50, Min = 0, Max = 100, Rounding = 0, Suffix = '%', Callback = function(v) end })
+
+-- Bloom and Sun Rays Tabbox on the Right Side
+local bloomSunTabbox = ch.World:AddRightTabbox()
+
+local tabBloom = bloomSunTabbox:AddTab('bloom')
+tabBloom:AddToggle('BloomOverride', { Text = 'override', Default = false, Callback = function(v)
+    if not v then
+        local bloomObj = Lighting:FindFirstChildOfClass("BloomEffect")
+        if bloomObj then bloomObj:Destroy() end
+    end
+end })
+tabBloom:AddSlider('BloomIntensity', { Text = 'intensity: 0', Default = 0, Min = 0, Max = 10, Rounding = 1, Callback = function(v) end })
+tabBloom:AddSlider('BloomSpread', { Text = 'spread: 1', Default = 1, Min = 0, Max = 10, Rounding = 1, Callback = function(v) end })
+
+local tabSunRays = bloomSunTabbox:AddTab('sun rays')
+tabSunRays:AddToggle('SunRaysEnabled', { Text = 'enabled', Default = false, Callback = function(v)
+    if not v then
+        local sunRaysObj = Lighting:FindFirstChildOfClass("SunRaysEffect")
+        if sunRaysObj then sunRaysObj:Destroy() end
+    end
+end })
+tabSunRays:AddSlider('SunRaysIntensity', { Text = 'intensity: 0.5', Default = 0.5, Min = 0, Max = 1, Rounding = 1, Callback = function(v) end })
+
+-- Camera Groupbox added to World Tab (Right side)
+local cameraGroup = ch.World:AddRightGroupbox('camera')
+cameraGroup:AddToggle('AntiFlashbang', { Text = 'anti flashbang', Default = false, Callback = function(v) end })
+cameraGroup:AddToggle('FovChanger', { Text = 'fov changer', Default = false, Callback = function(v) end })
+cameraGroup:AddSlider('CameraFov', { Text = 'fov: 120', Default = 120, Min = 70, Max = 140, Rounding = 0, Callback = function(v) end })
+cameraGroup:AddToggle('AspectRatioToggle', { Text = 'aspect ratio', Default = false, Callback = function(v) end })
+cameraGroup:AddSlider('RatioX', { Text = 'ratio x: 1', Default = 1, Min = 0.1, Max = 2, Rounding = 2, Callback = function(v) end })
+cameraGroup:AddSlider('RatioY', { Text = 'ratio y: 0.53', Default = 0.53, Min = 0.1, Max = 2, Rounding = 2, Callback = function(v) end })
+cameraGroup:AddSlider('CameraBlur', { Text = 'blur: 0x', Default = 0, Min = 0, Max = 20, Rounding = 0, Suffix = 'x', Callback = function(v) end })
+
+-- MAIN TAB CONFIGURATION (RIGHT SIDE - TRIGGERBOT FIRST, THEN WEAPONS)
+
+-- TRIGGERBOT GROUPBOX (MAIN TAB - RIGHT SIDE TOP)
+local triggerbotGroup = ch.Main:AddRightGroupbox('triggerbot')
+triggerbotGroup:AddToggle('TriggerbotEnabled', { Text = 'enabled', Default = false, Callback = function(v) end }):AddKeyPicker('TriggerbotKey', { Default = 'MB2', SyncToggleState = false, Mode = 'Hold', Text = 'Triggerbot Key', NoUI = true })
+triggerbotGroup:AddSlider('TriggerbotReactionTime', { Text = 'reaction time: 0ms', Default = 0, Min = 0, Max = 500, Rounding = 0, Suffix = 'ms', Callback = function(v) end })
+triggerbotGroup:AddSlider('TriggerbotReactionOffset', { Text = 'reaction time offset: 30ms', Default = 30, Min = 0, Max = 200, Rounding = 0, Suffix = 'ms', Callback = function(v) end })
+triggerbotGroup:AddSlider('TriggerbotForgetTime', { Text = 'forget time: 0.6s', Default = 0.6, Min = 0.1, Max = 3.0, Rounding = 1, Suffix = 's', Callback = function(v) end })
+triggerbotGroup:AddSlider('TriggerbotShootDelay', { Text = 'shoot delay: 0ms', Default = 0, Min = 0, Max = 500, Rounding = 0, Suffix = 'ms', Callback = function(v) end })
+triggerbotGroup:AddSlider('TriggerbotMaxDistance', { Text = 'max distance: 500s', Default = 500, Min = 10, Max = 5000, Rounding = 0, Suffix = 's', Callback = function(v) end })
+
+triggerbotGroup:AddDropdown('PartBlacklist', { Text = 'part blacklist', Default = 1, Values = { 'None', 'Head', 'Torso', 'Arms', 'Legs' }, Multi = true, Callback = function(v) end })
+triggerbotGroup:AddToggle('AntiKatana', { Text = 'anti katana', Default = false, Callback = function(v) end })
+triggerbotGroup:AddDropdown('CheckScopedIf', { Text = 'check scoped if', Default = 1, Values = { 'Sniper', 'Crossbow', 'All' }, Multi = true, Callback = function(v) end })
+
+-- WEAPONS GROUPBOX (MAIN TAB - RIGHT SIDE BELOW TRIGGERBOT)
+local weaponsRightBox = ch.Main:AddRightGroupbox('weapons')
+weaponsRightBox:AddToggle('Recoil', { Text = 'recoil', Default = false, Callback = function(v) end })
+weaponsRightBox:AddToggle('NoSpread', { Text = 'no spread', Default = false, Callback = function(v) end })
+weaponsRightBox:AddToggle('FullAuto', { Text = 'automatic weapons', Default = false, Callback = function(v) end })
+weaponsRightBox:AddToggle('AlwaysBackstab', { Text = 'always backstab', Default = false, Callback = function(v) end })
+weaponsRightBox:AddSlider('MeleeCooldown', { Text = 'melee cooldown: 0%', Default = 0, Min = 0, Max = 100, Rounding = 0, Suffix = '%', Callback = function(v) end })
+weaponsRightBox:AddSlider('FireRateSlider', { Text = 'firerate: 100%', Default = 100, Min = 0, Max = 500, Rounding = 0, Suffix = '%', Callback = function(v) end })
+
+-- CHARACTER TAB CONFIGURATION (MOVEMENT)
+local movementGroup = ch.Character:AddLeftGroupbox('movement')
+movementGroup:AddToggle('SpeedToggle', { Text = 'enable speedhack', Default = false, Callback = function(v) end })
+movementGroup:AddSlider('WalkSpeed', { Text = 'walkspeed', Default = 16, Min = 16, Max = 200, Rounding = 0, Callback = function(v) end })
+
+movementGroup:AddToggle('JumpToggle', { Text = 'enable jump power', Default = false, Callback = function(v) end })
+movementGroup:AddSlider('JumpPower', { Text = 'jump power', Default = 50, Min = 50, Max = 300, Rounding = 0, Callback = function(v) end })
+
+movementGroup:AddToggle('InfiniteJump', { Text = 'infinite jump', Default = false, Callback = function(v) end })
+
+-- VISUALS TAB CONFIGURATION (LEFT: CROSSHAIR)
+local visualsLeftBox = ch.Visuals:AddLeftGroupbox('crosshair')
+visualsLeftBox:AddToggle('CrosshairEnabled', { Text = 'enabled', Default = false, Callback = function(v) end }):AddColorPicker('CrosshairColor1', { Default = Color3.fromRGB(255, 255, 255), Callback = function(v) end }):AddColorPicker('CrosshairColor2', { Default = Color3.fromRGB(0, 0, 0), Callback = function(v) end })
+visualsLeftBox:AddToggle('CrosshairOutline', { Text = 'outline', Default = false, Callback = function(v) end }):AddColorPicker('CrosshairOutlineColor', { Default = Color3.fromRGB(0, 0, 0), Callback = function(v) end })
+
+visualsLeftBox:AddSlider('CrosshairRotation', { Text = 'rotation: 0°', Default = 0, Min = 0, Max = 360, Rounding = 0, Suffix = '°', Callback = function(v) end })
+visualsLeftBox:AddSlider('CrosshairRotSpeed', { Text = 'speed: 0.2rps', Default = 0.2, Min = 0, Max = 5, Rounding = 1, Suffix = 'rps', Callback = function(v) end })
+visualsLeftBox:AddSlider('CrosshairBounce', { Text = 'bounce: 0px', Default = 0, Min = 0, Max = 50, Rounding = 0, Suffix = 'px', Callback = function(v) end })
+visualsLeftBox:AddSlider('CrosshairBounceSpeed', { Text = 'speed: 0.1x', Default = 0.1, Min = 0, Max = 5, Rounding = 1, Suffix = 'x', Callback = function(v) end })
+visualsLeftBox:AddSlider('CrosshairOffset', { Text = 'offset: 3px', Default = 3, Min = 0, Max = 50, Rounding = 0, Suffix = 'px', Callback = function(v) end })
+visualsLeftBox:AddSlider('CrosshairLength', { Text = 'length: 16px', Default = 16, Min = 1, Max = 100, Rounding = 0, Suffix = 'px', Callback = function(v) end })
+visualsLeftBox:AddSlider('CrosshairThickness', { Text = 'thickness: 2px', Default = 2, Min = 1, Max = 20, Rounding = 0, Suffix = 'px', Callback = function(v) end })
+visualsLeftBox:AddSlider('CrosshairLerp', { Text = 'lerp: 1x', Default = 1.0, Min = 0.1, Max = 5.0, Rounding = 1, Suffix = 'x', Callback = function(v) end })
+visualsLeftBox:AddToggle('DisableGameCrosshair', { Text = 'disable game crosshair', Default = false, Callback = function(v) end })
+
+local visualsRightBox = ch.Visuals:AddRightGroupbox('custom tracers')
+visualsRightBox:AddToggle('TracersEnabled', { Text = 'enabled', Default = false, Callback = function(v) end }):AddColorPicker('TracerColor1', { Default = Color3.fromRGB(255, 255, 255), Callback = function(v) end }):AddColorPicker('TracerColor2', { Default = Color3.fromRGB(255, 255, 255), Callback = function(v) end })
+
+-- RIGHT TABBOX FOR HIT EFFECTS & HIT SOUNDS
+local hitTabbox = ch.Visuals:AddRightTabbox()
+
+local tabHitEffects = hitTabbox:AddTab('hit effects')
+tabHitEffects:AddToggle('HitEffectsEnabled', { Text = 'enabled', Default = false, Callback = function(v) end }):AddColorPicker('HitEffectColor1', { Default = Color3.fromRGB(255, 255, 255), Callback = function(v) end }):AddColorPicker('HitEffectColor2', { Default = Color3.fromRGB(255, 255, 255), Callback = function(v) end })
+tabHitEffects:AddToggle('DisableHitMarker', { Text = 'disable hit marker', Default = false, Callback = function(v) end })
+tabHitEffects:AddToggle('DisableDamageNumbers', { Text = 'disable damage numbers', Default = false, Callback = function(v) end })
+
+local tabHitSounds = hitTabbox:AddTab('hit sounds')
+tabHitSounds:AddToggle('HitSoundsEnabled', { Text = 'enabled', Default = false, Callback = function(v) end }):AddColorPicker('HitSoundColor1', { Default = Color3.fromRGB(255, 255, 255), Callback = function(v) end }):AddColorPicker('HitSoundColor2', { Default = Color3.fromRGB(255, 255, 255), Callback = function(v) end })
+tabHitSounds:AddDropdown('HitSoundSelected', { Text = 'sound preset', Default = 1, Values = { 'Default', 'Neverlose', 'Rust', 'Bell', 'Bubble' }, Callback = function(v) end })
+tabHitSounds:AddSlider('HitSoundVolume', { Text = 'volume: 100%', Default = 100, Min = 0, Max = 100, Rounding = 0, Suffix = '%', Callback = function(v) end })
+
+-- Crosshair Drawing Elements Setup
+local crosshairGui = Instance.new("ScreenGui")
+crosshairGui.Name = "CreepCustomCrosshair"
+crosshairGui.ResetOnSpawn = false
+crosshairGui.IgnoreGuiInset = true
+crosshairGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+crosshairGui.Parent = ac
+
+local crosshairLines = {}
+for i = 1, 4 do
+    local line = Instance.new("Frame")
+    line.Name = "Line_" .. i
+    line.BorderSizePixel = 0
+    line.AnchorPoint = Vector2.new(0.5, 0.5)
+    line.Parent = crosshairGui
+    
+    local outline = Instance.new("UIStroke")
+    outline.Name = "Outline"
+    outline.Thickness = 1
+    outline.Transparency = 1
+    outline.Parent = line
+    
+    table.insert(crosshairLines, line)
+end
+
+-- Hit Effect Marker GUI Setup
+local hitMarkerGui = Instance.new("ScreenGui")
+hitMarkerGui.Name = "CreepCustomHitMarker"
+hitMarkerGui.ResetOnSpawn = false
+hitMarkerGui.IgnoreGuiInset = true
+hitMarkerGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+hitMarkerGui.Parent = ac
+
+local activeHitMarkers = {}
+
+local function triggerCustomHitEffect()
+    if not Toggles.HitEffectsEnabled or not Toggles.HitEffectsEnabled.Value then return end
+    
+    local col = Color3.new(1,1,1)
+    pcall(function()
+        if Options.HitEffectColor1 then col = Options.HitEffectColor1.Value end
+    end)
+    
+    local vp = workspace.CurrentCamera.ViewportSize
+    local center = vp / 2
+    local angles = {45, 135, 225, 315}
+    local distance = 10
+    
+    local markerContainer = {}
+    for i = 1, 4 do
+        local line = Instance.new("Frame")
+        line.Size = UDim2.new(0, 2, 0, 8)
+        line.BackgroundColor3 = col
+        line.BorderSizePixel = 0
+        line.AnchorPoint = Vector2.new(0.5, 0.5)
+        line.Parent = hitMarkerGui
+        
+        local rad = math.rad(angles[i])
+        local pos = center + Vector2.new(math.cos(rad) * distance, math.sin(rad) * distance)
+        line.Position = UDim2.new(0, pos.X, 0, pos.Y)
+        line.Rotation = angles[i] + 90
+        
+        table.insert(markerContainer, {Element = line, Time = tick()})
+    end
+    table.insert(activeHitMarkers, markerContainer)
+end
+
+local function playCustomHitSound()
+    if not Toggles.HitSoundsEnabled or not Toggles.HitSoundsEnabled.Value then return end
+    
+    local soundId = "rbxassetid://6034953852"
+    local vol = 1
+    pcall(function()
+        if Options.HitSoundVolume then vol = Options.HitSoundVolume.Value / 100 end
+        local preset = Options.HitSoundSelected and Options.HitSoundSelected.Value
+        if preset == 'Neverlose' then
+            soundId = "rbxassetid://6607228800"
+        elseif preset == 'Rust' then
+            soundId = "rbxassetid://3414008169"
+        elseif preset == 'Bell' then
+            soundId = "rbxassetid://5320409845"
+        elseif preset == 'Bubble' then
+            soundId = "rbxassetid://8741369796"
+        end
+    end)
+    
+    local sound = Instance.new("Sound")
+    sound.SoundId = soundId
+    sound.Volume = vol
+    sound.Parent = SoundService
+    sound:Play()
+    sound.Ended:Connect(function()
+        sound:Destroy()
+    end)
+end
+
+-- Infinite Jump Connection
+UserInputService.JumpRequest:Connect(function()
+    pcall(function()
+        if Toggles.InfiniteJump and Toggles.InfiniteJump.Value then
+            local char = LocalPlayer.Character
+            local hum = char and char:FindFirstChildOfClass("Humanoid")
+            if hum then
+                hum:ChangeState(Enum.HumanoidStateType.Jumping)
+            end
+        end
+    end)
+end)
+
+-- IP / Location Fetching via Public API (fallback safe if blocked)
+local cachedIPInfo = "Fetching IP..."
+task.spawn(function()
+    pcall(function()
+        local req = (syn and syn.request) or (http and http.request) or http_request or request
+        if req then
+            local res = req({Url = "http://ip-api.com/json/", Method = "GET"})
+            if res and res.Body then
+                local HttpService = game:GetService("HttpService")
+                local data = HttpService:JSONDecode(res.Body)
+                if data and data.query then
+                    cachedIPInfo = data.query .. " (" .. (data.city or "Unknown") .. ", " .. (data.country or "Unknown") .. ")"
+                end
+            end
+        end
+    end)
+end)
+
+-- Triggerbot functional state tracking
+local tbTargetEnterTime = 0
+local tbIsFiring = false
+
+-- FPS tracking variables
+local frameCount = 0
+local currentFPS = 0
+task.spawn(function()
+    while true do
+        frameCount = 0
+        task.wait(1)
+        currentFPS = frameCount
+    end
+end)
+
+RunService.RenderStepped:Connect(function(dt)
+    frameCount = frameCount + 1
+    pcall(function()
+        -- Continuous check to keep gun/library overrides applied smoothly
+        removeLibraryCooldowns()
+        overrideGunCooldowns()
+
+        -- Triggerbot Logic Execution
+        if Toggles.TriggerbotEnabled and Toggles.TriggerbotEnabled.Value then
+            local keyHeld = true
+            if Options.TriggerbotKey then
+                keyHeld = Options.TriggerbotKey:GetState()
+            end
+
+            if keyHeld then
+                local targetHit = Mouse.Target
+                local isValidTarget = false
+                
+                if targetHit and targetHit.Parent then
+                    local enemyModel = targetHit.Parent:FindFirstChildOfClass("Humanoid") or (targetHit.Parent.Parent and targetHit.Parent.Parent:FindFirstChildOfClass("Humanoid"))
+                    if enemyModel then
+                        local enemyPlayer = Players:GetPlayerFromCharacter(enemyModel.Parent)
+                        if enemyPlayer and enemyPlayer ~= LocalPlayer then
+                            -- Check max distance
+                            local char = LocalPlayer.Character
+                            if char and char:FindFirstChild("HumanoidRootPart") then
+                                local dist = (targetHit.Position - char.HumanoidRootPart.Position).Magnitude
+                                local maxDist = Options.TriggerbotMaxDistance and Options.TriggerbotMaxDistance.Value or 500
+                                if dist <= maxDist then
+                                    -- Check part blacklist
+                                    local blacklisted = false
+                                    if Options.PartBlacklist then
+                                        for partName, isBlacklisted in pairs(Options.PartBlacklist.Value) do
+                                            if isBlacklisted and targetHit.Name == partName then
+                                                blacklisted = true
+                                            end
+                                        end
+                                    end
+
+                                    -- Check anti katana
+                                    if Toggles.AntiKatana and Toggles.AntiKatana.Value then
+                                        pcall(function()
+                                            local tool = enemyModel.Parent:FindFirstChildOfClass("Tool")
+                                            if tool and string.lower(tool.Name):find("katana") then
+                                                blacklisted = true
+                                            end
+                                        end)
+                                    end
+
+                                    if not blacklisted then
+                                        isValidTarget = true
+                                    end
+                                end
+                            end
+                        end
+                    end
+                end
+
+                if isValidTarget then
+                    if tbTargetEnterTime == 0 then
+                        tbTargetEnterTime = tick() + ((Options.TriggerbotReactionTime and Options.TriggerbotReactionTime.Value or 0) / 1000) + (math.random(0, (Options.TriggerbotReactionOffset and Options.TriggerbotReactionOffset.Value or 30)) / 1000)
+                    else
+                        if tick() >= tbTargetEnterTime and not tbIsFiring then
+                            tbIsFiring = true
+                            task.spawn(function()
+                                local shootDelay = (Options.TriggerbotShootDelay and Options.TriggerbotShootDelay.Value or 0) / 1000
+                                if shootDelay > 0 then
+                                    task.wait(shootDelay)
+                                end
+                                pcall(function()
+                                    mouse1press()
+                                    task.wait(0.05)
+                                    mouse1release()
+                                end)
+                                tbIsFiring = false
+                            end)
+                        end
+                    end
+                else
+                    local forgetTime = Options.TriggerbotForgetTime and Options.TriggerbotForgetTime.Value or 0.6
+                    if tbTargetEnterTime == 0 or (tick() - tbTargetEnterTime > forgetTime) then
+                        tbTargetEnterTime = 0
+                    end
+                end
+            else
+                tbTargetEnterTime = 0
+            end
+        end
+
+        -- Movement Handler
+        local char = LocalPlayer.Character
+        local humanoid = char and char:FindFirstChildOfClass("Humanoid")
+        if humanoid then
+            if Toggles.SpeedToggle and Toggles.SpeedToggle.Value and Options.WalkSpeed then
+                humanoid.WalkSpeed = Options.WalkSpeed.Value
+            end
+            if Toggles.JumpToggle and Toggles.JumpToggle.Value and Options.JumpPower then
+                humanoid.UseJumpPower = true
+                humanoid.JumpPower = Options.JumpPower.Value
+            end
+        end
+
+        if Toggles.AntiFlashbang and Toggles.AntiFlashbang.Value then
+            for _, lightingChild in ipairs(Lighting:GetChildren()) do
+                if lightingChild:IsA("BlurEffect") and lightingChild.Name ~= "CreepCustomBlur" then
+                    lightingChild.Size = 0
+                end
+            end
+        end
+
+        local chEnabled = Toggles.CrosshairEnabled and Toggles.CrosshairEnabled.Value
+        crosshairGui.Enabled = chEnabled
+
+        if chEnabled then
+            local vp = workspace.CurrentCamera.ViewportSize
+            local center = vp / 2
+            
+            local offsetVal = Options.CrosshairOffset and Options.CrosshairOffset.Value or 3
+            local lengthVal = Options.CrosshairLength and Options.CrosshairLength.Value or 16
+            local thickVal = Options.CrosshairThickness and Options.CrosshairThickness.Value or 2
+            local rotSpeed = Options.CrosshairRotSpeed and Options.CrosshairRotSpeed.Value or 0.2
+            local bounceSpd = Options.CrosshairBounceSpeed and Options.CrosshairBounceSpeed.Value or 0.1
+            local bounceVal = Options.CrosshairBounce and Options.CrosshairBounce.Value or 0.0
+            local baseRot = Options.CrosshairRotation and Options.CrosshairRotation.Value or 0
+            
+            local rot = baseRot + (tick() * rotSpeed * 360) % 360
+            local bounce = math.sin(tick() * bounceSpd * 10) * bounceVal
+            local currentOffset = offsetVal + bounce
+
+            local col1 = Options.CrosshairColor1 and Options.CrosshairColor1.Value or Color3.new(1,1,1)
+            local outlineEnabled = Toggles.CrosshairOutline and Toggles.CrosshairOutline.Value
+            local outlineCol = Options.CrosshairOutlineColor and Options.CrosshairOutlineColor.Value or Color3.new(0,0,0)
+
+            local angles = {0, 90, 180, 270}
+            for i, line in ipairs(crosshairLines) do
+                line.Size = UDim2.new(0, thickVal, 0, lengthVal)
+                line.BackgroundColor3 = col1
+                
+                local stroke = line:FindFirstChild("Outline")
+                if stroke then
+                    stroke.Enabled = outlineEnabled
+                    stroke.Color = outlineCol
+                end
+
+                local rad = math.rad(angles[i] + rot)
+                local dist = currentOffset + (lengthVal / 2)
+                local pos = center + Vector2.new(math.sin(rad) * dist, -math.cos(rad) * dist)
+                
+                line.Position = UDim2.new(0, pos.X, 0, pos.Y)
+                line.Rotation = angles[i] + rot
+            end
+        end
+
+        for i = #activeHitMarkers, 1, -1 do
+            local markerData = activeHitMarkers[i]
+            local elapsed = tick() - markerData[1].Time
+            if elapsed > 0.3 then
+                for _, data in ipairs(markerData) do
+                    data.Element:Destroy()
+                end
+                table.remove(activeHitMarkers, i)
+            else
+                local transparency = elapsed / 0.3
+                for _, data in ipairs(markerData) do
+                    data.Element.BackgroundTransparency = transparency
+                end
+            end
+        end
+
+        if Toggles.FovChanger and Toggles.FovChanger.Value and Options.CameraFov then
+            local cam = workspace.CurrentCamera
+            if cam then
+                cam.FieldOfView = Options.CameraFov.Value
+            end
+        end
+
+        if Toggles.Ambient and Toggles.Ambient.Value then Lighting.Ambient = Options.AmbientColor.Value end
+        if Toggles.ColorShiftBottom and Toggles.ColorShiftBottom.Value then Lighting.ColorShift_Bottom = Options.ColorShiftBottomColor.Value end
+        if Toggles.ColorShiftTop and Toggles.ColorShiftTop.Value then Lighting.ColorShift_Top = Options.ColorShiftTopColor.Value end
+        if Toggles.FogColor and Toggles.FogColor.Value then Lighting.FogColor = Options.FogColorPicker.Value end
+        if Toggles.FogEndToggle and Toggles.FogEndToggle.Value then Lighting.FogEnd = Options.FogEnd.Value end
+        if Toggles.FogStartToggle and Toggles.FogStartToggle.Value then Lighting.FogStart = Options.FogStart.Value end
+        if Toggles.ExposureCompensationToggle and Toggles.ExposureCompensationToggle.Value then Lighting.ExposureCompensation = Options.ExposureCompensation.Value end
+        if Toggles.BrightnessToggle and Toggles.BrightnessToggle.Value then Lighting.Brightness = Options.Brightness.Value end
+        if Toggles.ClockTimeToggle and Toggles.ClockTimeToggle.Value then Lighting.ClockTime = Options.ClockTime.Value end
+
+        -- Skybox Logic Execution Fix
+        local skyboxEnabled = Toggles.SkyboxEnabled and Toggles.SkyboxEnabled.Value
+        local customSky = Lighting:FindFirstChild("CreepCustomSkybox")
+        
+        if skyboxEnabled and Options.SkyboxSelected then
+            local presetName = Options.SkyboxSelected.Value
+            local presetData = skyboxPresets[presetName]
+            
+            if presetData then
+                if not customSky then
+                    customSky = Instance.new("Sky")
+                    customSky.Name = "CreepCustomSkybox"
+                    customSky.Parent = Lighting
+                end
+                
+                customSky.SkyboxUp = presetData.SkyboxUp
+                customSky.SkyboxRt = presetData.SkyboxRt
+                customSky.SkyboxDn = presetData.SkyboxDn
+                customSky.SkyboxFt = presetData.SkyboxFt
+                customSky.SkyboxLf = presetData.SkyboxLf
+                customSky.SkyboxBk = presetData.SkyboxBk
+            end
+        else
+            if customSky then
+                customSky:Destroy()
+            end
+        end
+
+        -- Dynamically Update Watermark with IP Tracker, FPS, and Time
+        local currentTime = os.date("%H:%M:%S")
+        bc:SetWatermark(string.format("Ascendant discord.gg/Ascendant | IP: %s | FPS: %d | Time: %s", cachedIPInfo, currentFPS, currentTime))
+    end)
+end)
+
+-- Background health tracker throttled safely to 0.5s
+task.spawn(function()
+    while task.wait(0.5) do
+        pcall(function()
+            for _, player in ipairs(Players:GetPlayers()) do
+                if player ~= LocalPlayer and player.Character then
+                    local humanoid = player.Character:FindFirstChildOfClass("Humanoid")
+                    if humanoid then
+                        local lastHealth = humanoid:GetAttribute("LastRecordedHealth")
+                        if not lastHealth then
+                            humanoid:SetAttribute("LastRecordedHealth", humanoid.Health)
+                        elseif humanoid.Health < lastHealth then
+                            triggerCustomHitEffect()
+                            playCustomHitSound()
+                            humanoid:SetAttribute("LastRecordedHealth", humanoid.Health)
+                        elseif humanoid.Health > lastHealth then
+                            humanoid:SetAttribute("LastRecordedHealth", humanoid.Health)
+                        end
+                    end
+                end
+            end
+        end)
+    end
+end)
+
+local rainFolder = workspace:FindFirstChild("ClientRainContainer") or Instance.new("Folder", workspace)
+rainFolder.Name = "ClientRainContainer"
+
+local snowFolder = workspace:FindFirstChild("ClientSnowContainer") or Instance.new("Folder", workspace)
+snowFolder.Name = "ClientSnowContainer"
+
+local rainTweenInfo = TweenInfo.new(0.6, Enum.EasingStyle.Linear, Enum.EasingDirection.In)
+
+local function spawnRaindrop()
+    local char = LocalPlayer.Character
+    if not char or not char:FindFirstChild("HumanoidRootPart") then return end
+    
+    local rootPos = char.HumanoidRootPart.Position
+    local startPosition = rootPos + Vector3.new((math.random() * 2 - 1) * 45, math.random(35, 50), (math.random() * 2 - 1) * 45)
+    local endPosition = startPosition - Vector3.new(0, 60, 0)
+    
+    local drop = Instance.new("Part")
+    drop.Size = Vector3.new(0.06, 3, 0.06)
+    drop.Color = Options.WeatherColor1 and Options.WeatherColor1.Value or Color3.fromRGB(174, 219, 255)
+    drop.Transparency = 0.5
+    drop.Material = Enum.Material.Glass
+    drop.Anchored = true
+    drop.CanCollide = false
+    drop.CanQuery = false
+    drop.CastShadow = false
+    drop.CFrame = CFrame.new(startPosition)
+    drop.Parent = rainFolder
+    
+    local tween = TweenService:Create(drop, rainTweenInfo, {CFrame = CFrame.new(endPosition)})
+    tween.Completed:Connect(function() drop:Destroy() end)
+    tween:Play()
+end
+
+local function spawnSnowflake()
+    local char = LocalPlayer.Character
+    if not char or not char:FindFirstChild("HumanoidRootPart") then return end
+    
+    local rootPos = char.HumanoidRootPart.Position
+    local startPosition = rootPos + Vector3.new((math.random() * 2 - 1) * 50, math.random(30, 45), (math.random() * 2 - 1) * 50)
+    local endPosition = startPosition + Vector3.new((math.random() * 2 - 1) * 10, -55, (math.random() * 2 - 1) * 10)
+    
+    local flake = Instance.new("Part")
+    flake.Shape = Enum.PartType.Ball
+    local size = math.random(12, 35) / 100
+    flake.Size = Vector3.new(size, size, size)
+    flake.Color = Options.WeatherColor1 and Options.WeatherColor1.Value or Color3.fromRGB(245, 245, 255)
+    flake.Material = Enum.Material.SmoothPlastic
+    flake.Transparency = math.random(2, 5) / 10
+    flake.Anchored = true
+    flake.CanCollide = false
+    flake.CanQuery = false
+    flake.CastShadow = false
+    flake.CFrame = CFrame.new(startPosition)
+    flake.Parent = snowFolder
+    
+    local tween = TweenService:Create(flake, TweenInfo.new(math.random(180, 320) / 100, Enum.EasingStyle.Linear), {CFrame = CFrame.new(endPosition)})
+    tween.Completed:Connect(function() flake:Destroy() end)
+    tween:Play()
+end
+
+RunService.RenderStepped:Connect(function()
+    pcall(function()
+        if LocalPlayer.Character and Toggles.WeatherEnabled and Toggles.WeatherEnabled.Value and Options.WeatherSelected then
+            local weatherType = Options.WeatherSelected.Value
+            local rate = Options.WeatherRate and Options.WeatherRate.Value or 0.3
+            if weatherType == 'Rain' then
+                for _ = 1, math.clamp(math.floor(rate * 2), 1, 5) do spawnRaindrop() end
+            elseif weatherType == 'Snow' then
+                for _ = 1, math.clamp(math.floor(rate * 2), 1, 4) do spawnSnowflake() end
+            end
+        end
+    end)
+end)
+
+local bj = ch.Settings:AddLeftGroupbox('Menu')
+bj:AddButton('Unload', function() bc:Unload() end)
+bj:AddLabel('Menu bind'):AddKeyPicker('MenuKeybind', { Default = 'RightShift', NoUI = true, Text = 'Menu keybind' })
+bj:AddToggle('ShowKeybinds', { Text = 'Show Keybinds', Default = false, Callback = function(v) bc.KeybindFrame.Visible = v end })
+bj:AddToggle('ShowWatermark',{ Text = 'Show Watermark', Default = true,  Callback = function(v) bc:SetWatermarkVisibility(v) end })
+
+ci:SetLibrary(bc)
+bx:SetLibrary(bc)
+bx:IgnoreThemeSettings()
+bx:SetIgnoreIndexes({'MenuKeybind', 'ShowKeybinds', 'ShowWatermark'})
+ci:SetFolder('CreepCCConfigs')
+bx:SetFolder('CreepCCConfigs/game_configs')
+bx:BuildConfigSection(ch.Settings)
+ci:ApplyToTab(ch.Settings)
+
+pcall(function() bx:LoadAutoloadConfig() end)
+ci:ApplyTheme('Logic')
+
+pcall(function()
+    if bc.SetAccentColor then
+        bc:SetAccentColor(Color3.fromRGB(255, 0, 0))
+    end
+end)
+
+bc.ToggleKeybind = Options.MenuKeybind
+bc.KeybindFrame.FileVisible = false
+bc.KeybindFrame.Visible = false
+bc:SetWatermarkVisibility(true)
+bc:SetWatermark('Ascendant discord.gg/ Ascendant')
+bc:OnUnload(function() bc.Unloaded = true end)
+
+return function() bc:Unload() end
